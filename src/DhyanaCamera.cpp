@@ -632,7 +632,7 @@ void Camera::getDetectorModel(std::string& model)
 //
 //-----------------------------------------------------
 /*
-void Camera::getDetectorImageSize_old(Size& size)
+void Camera::getDetectorImageSize(Size& size)
 {
 	DEB_MEMBER_FUNCT();
 
@@ -642,34 +642,35 @@ void Camera::getDetectorImageSize_old(Size& size)
 }
 */
 //-----------------------------------------------------
+
 void Camera::getDetectorImageSize(Size& size)
 {
 	DEB_MEMBER_FUNCT();
 
-	//@BEGIN : Get Detector size in pixels from Driver/API
-	TUCAMRET tuRet;
+	TUCAM_VALUE_TEXT valText = {};
+	char szRes[64] = {};
+	valText.nID = TUIDC_RESOLUTION;
+	valText.dbValue = 0;
+	valText.nTextSize = sizeof(szRes);
+	valText.pText = &szRes[0];
 
-	TUCAM_CAPA_ATTR attrResH;
-	attrResH.idCapa = TUIDC_HORIZONTAL;
-	tuRet = TUCAM_Capa_GetAttr(m_opCam.hIdxTUCam, &attrResH);
-	if (TUCAMRET_SUCCESS == tuRet) {
-		DEB_TRACE() << "Camera horizontal resolution: " << attrResH.nValMax;
+	int width = 0;
+	int height = 0;
+	if (TUCAMRET_SUCCESS == TUCAM_Capa_GetValueText(m_opCam.hIdxTUCam, &valText))
+	{
+		std::string resolution = valText.pText;
+		auto pos = resolution.find('x');
+		width  = std::stoi(resolution.substr(0, pos));
+		height = std::stoi(resolution.substr(pos + 1));
 	}
-	else {
-		THROW_HW_ERROR(Error) << "Unable to read camera horizontal resolution !";
+	else
+	{
+		width = PIXEL_NB_WIDTH;
+		height = PIXEL_NB_HEIGHT;
 	}
-
-	TUCAM_CAPA_ATTR attrResV;
-	attrResV.idCapa = TUIDC_VERTICAL;
-	tuRet = TUCAM_Capa_GetAttr(m_opCam.hIdxTUCam, &attrResV);
-	if (TUCAMRET_SUCCESS == tuRet) {
-		DEB_TRACE() << "Camera vertical resolution: " << attrResV.nValMax;
-	}
-	else {
-		THROW_HW_ERROR(Error) << "Unable to read camera vertical resolution !";
-	}
-
-	size = Size(attrResH.nValMax, attrResV.nValMax);
+	DEB_ALWAYS() << "Camera max resolution: " << width << "x" << height;
+	
+	size = Size(width, height);
 	//@END
 }
 
